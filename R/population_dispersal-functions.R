@@ -506,34 +506,45 @@ cellular_automata_dispersal <- function (max_cells = Inf,
       steps_stash$dispersal_stats_success[[i]] <- dispersed$dispersed
       steps_stash$dispersal_stats_failure[[i]] <- dispersed$failed
      
-      if (which(i %in% which_stages_disperse) == 1) {dispersal_tracked <- dispersed$tracked} #######################
-      
-      dispersal_tracked <- dispersal_tracked + dispersed$tracked #######################
+      if (which(i %in% which_stages_disperse) == 1) {dispersal_tracked <- dispersed$tracked} 
+      dispersal_tracked <- dispersal_tracked + dispersed$tracked 
     }
     
-    ########################################################
-    #DISEASE SPREAD
-    ########################################################
+    ######################################################################
+    ##MODEL SPREAD OF DFT1 AND DFT2 BASED ON CUNNINGHAM DIFFUSION MODEL
+    ######################################################################
     
-    disease_raster <- landscape$DFTD1
-    disease_raster2 <- landscape$DFTD2
-    arrival_raster <- landscape$arrival
+    #Extract disease layers from landscape object
+    DFT1_raster <- landscape$DFTD1 #DFT1
+    DFT2_raster <- landscape$DFTD2 #DFT2
+    arrival_raster <- landscape$arrival #Estimated disease arrival date ---->>>>CHECK IF THIS IS BEING USED
+    
+    #Make cells that became locally extinct susceptible again not infected
+    total_pop <- sum(population_raster)
+    DFT1_raster[total_pop==0] <- 0
+    DFT2_raster[total_pop==0] <- 0
+    
+    #Extract carrying capacity, population stack, calculate density and scale from 0 to 1
+    max_density <- landscape$carrying_capacity/25 
     density_raster <- sum(landscape$population)/25
-    density_raster_scaled <- density_raster
-    density_raster_scaled[!is.na(density_raster_scaled)] <- density_raster_scaled[!is.na(density_raster_scaled)]/max(values(density_raster_scaled),na.rm=TRUE) 
+    density_raster_scaled <- density_raster/maxValue(max_density) #Density in current time step is scaled against maximum possible time step
     
-    #Which cells in the DFTD1 raster are occupied
-    disease_matrix <- raster::as.matrix(disease_raster)
-    source <- which(disease_matrix==1)
-    #Which cells has DFTD1 arrived to
+    #Identify which cells have ages above a certain threshold
+    age_class_stack <- sum(landscape$population[[2:6]])
+    age_class_matrix <- raster::as.matrix(age_class_stack)
+    age_class_matrix[age_class_matrix > 0] <- 1
+    
+    #Turn rasters into matrices
+    DFT1_matrix <- raster::as.matrix(DFT1_raster)
+    DFT2_matrix <- raster::as.matrix(DFT2_raster)
     arrival_matrix <- raster::as.matrix(arrival_raster)
     
-    #Which cells in the DFTD2 raster are occupied
-    disease_matrix2 <- raster::as.matrix(disease_raster2)
-    source2 <- which(disease_matrix2==1)
+    #Which cells are occupied with DFT1 and DFT2
+    source <- which(DFT1_matrix==1)  #------------------------>>>>>>CHANGE SOURCE AND SOURCE2
+    source2 <- which(DFT2_matrix==1)
     
-    #Model spread of DFTD1 and DFTD2 in 2 ways - first model spread to neighbouring cells through contact
-    wdist <- matrix(c(0.00,0.00,1.00,1.00,1.00,0.00,0.00,
+    #Specify spread neighborhood (15km) for DFT1 and DFT2 around infected cells 
+    dist_15 <- matrix(c(0.00,0.00,1.00,1.00,1.00,0.00,0.00, 
                       0.00,1.00,1.00,1.00,1.00,1.00,0.00,
                       1.00,1.00,1.00,1.00,1.00,1.00,1.00,
                       1.00,1.00,1.00,1.00,1.00,1.00,1.00,
@@ -542,91 +553,52 @@ cellular_automata_dispersal <- function (max_cells = Inf,
                       0.00,0.00,1.00,1.00,1.00,0.00,0.00),
                     nrow=7,ncol=7)
     
-    wdist2 <- matrix(c(0.00,0.00,1.00,0.00,0.00,
+    #Specify smaller spread neighborhood (10km) for DFT1 and DFT2 around infected cells 
+    dist_10 <- matrix(c(0.00,0.00,1.00,0.00,0.00,
                       0.00,1.00,1.00,1.00,0.00,
                       1.00,1.00,1.00,1.00,1.00,
                       0.00,1.00,1.00,1.00,0.00,
                       0.00,0.00,1.00,0.00,0.00),
                     nrow=5,ncol=5)
     
-    #Now model neighbourhood spread in DTFD1
-    if (timestep < 9) {out <- disease_raster}
+    #Specify smallest spread neighborhood (5km) for DFT1 and DFT2 around infected cells
+    dist_5 <- matrix(c(0.00,1.00,0.00,
+                       1.00,1.00,1.00,
+                       0.00,1.00,0.00),
+                      nrow=3,ncol=3)
     
-    if (timestep >= 9) {
-      # Get a vector of cell values for working with
-      working <- disease_raster
-      working[is.na(working)] <- -1
-      x <- raster::as.matrix(working)
-      m <- ncol(working); n <- nrow(working)	# Already defined
-      
-      # Create probability of a cell being infected 
-      logPr <- -3.11 + 7.75*density_raster_scaled
-      PInf <- exp(logPr)/(1+exp(logPr))
-      PInfm <- raster::as.matrix(PInf)
-      
-      occ <- ifelse(x==1,1,0)
-      dim(occ) <- c(n,m)
-      nb <- neighbours(occ, wdist=wdist)
-      xgen <- ifelse(x==0 & nb >= runif(n*m),1, 0)
-      xgen <- ifelse(x==0 & nb >= runif(n*m) & PInfm >= runif(n*m), 1, 0)
-      x <- xgen + occ
-      out <- working
-      out[] <- x
-      out[is.na(disease_raster)] <- NA
-    }
+    #Now run diffusion of DFT1 and DFT2 after 9 years and 30 years respectively. The argument "1" means that cells occupied by all age classes
+    #can spread DFT, whereas a value of "2" means that only cells with some devils >1 year old spread DFT
+    if (timestep < 9) {out <- DFT1_raster} else {out <- DFT_diffusion(DFT1_raster, age_class_matrix, density_raster_scaled, dist_15)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
+    if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion(DFT2_raster, age_class_matrix, density_raster_scaled, dist_5)}
     
-    #Now model neighbourhood spread in DTFD2
-    if (timestep < 30) {out2 <- disease_raster2}
+    #Now model spread of DFT1 through migration when individuals move and establish to neighbouring cells
+    #In the diffusion model, cells with low densities have a low probability of being infected
+    #In this component, they can more easily become infected because individuals are more likely to settle in low density cells 
     
-    if (timestep >= 30) {
-      # Get a vector of cell values for working with
-      working2 <- disease_raster2
-      working2[is.na(working2)] <- -1
-      x2 <- raster::as.matrix(working2)
-      m2 <- ncol(working2); n2 <- nrow(working2)	# Already defined
-      
-      # Create probability of a cell being infected 
-      logPr2 <- -3.11 + 7.75*density_raster_scaled
-      PInf2 <- exp(logPr2)/(1+exp(logPr2))
-      PInfm2 <- raster::as.matrix(PInf2)
-      
-      occ2 <- ifelse(x2==1,1,0)
-      dim(occ2) <- c(n2,m2)
-      nb2 <- neighbours(occ2, wdist=wdist)
-      xgen2 <- ifelse(x2==0 & nb2 >= runif(n2*m2),1, 0)
-      xgen2 <- ifelse(x2==0 & nb2 >= runif(n2*m2) & PInfm2 >= runif(n2*m2), 1, 0)
-      x2 <- xgen2 + occ2
-      out3 <- working2
-      out3[] <- x2
-      out3[is.na(disease_raster2)] <- NA
-    }
+    #ADD INDIVIDUAL MOVEMENT OF DISEASE BACK INTO THE CODE LATER
+    #cells_to <- c()
+    #for (v in source){
+      #out2 <- which(dispersal_tracked[v,]>=1) 
+      #cells_to <- c(cells_to, out2)
+    #}
     
-    #Now model spread through individual dispersal
-    cells_to <- c()
-    for (v in source){
-      out2 <- which(dispersal_tracked[v,]>=1) 
-      cells_to <- c(cells_to, out2)
-    }
+    #if (timestep >= 9) {DFT1_matrix[cells_to] <- 1} ########SWITCH BETWEEN 0 AND 1
+    #DFT1_matrix[which(arrival_matrix< timestep)] <- 0 ########SWITCH BETWEEN 0 AND 1
+    #raster::values(DFT1_raster) <- DFT1_matrix
+  
+    DFT1_raster_new <- DFT1_raster + out
+    DFT1_raster_new[DFT1_raster_new > 1] <- 1
+    DFT1_raster_new[arrival_raster==100] <- 0
+    landscape$DFTD1 <-  DFT1_raster_new
     
-    if (timestep >= 9) {disease_matrix[cells_to] <- 1} ########SWITCH BETWEEN 0 AND 1
-    #disease_matrix[which(arrival_matrix< timestep)] <- 0 ########SWITCH BETWEEN 0 AND 1
-    raster::values(disease_raster) <- disease_matrix
+    DFT2_raster_new <- DFT2_raster + out3
+    DFT2_raster_new[DFT2_raster_new > 1] <- 1
+    DFT2_raster_new[arrival_raster==100] <- 0
+    landscape$DFTD2 <-  DFT2_raster_new
     
-    total_pop <- sum(population_raster)
-    disease_raster[total_pop==0] <- 0
-    disease_raster2[total_pop==0] <- 0
-    out[total_pop==0] <- 0
-    combined <- disease_raster + out
-    combined[combined > 1] <- 1
-    combined[arrival_raster==100] <- 0
-    
-    
-    #if (timestep >35) {combined[!is.na(combined)] <- 0}
-    #if (timestep >35) {out3[!is.na(out3)] <- 0}
-    
-    landscape$DFTD1 <- combined
-    if (timestep < 30) {landscape$DFTD2 <- disease_raster2} else {landscape$DFTD2 <- out3}
-    landscape$DFTD2[arrival_raster==100] <- 0
+    #if (timestep < 30) {landscape$DFTD2 <- DFT2_raster} else {landscape$DFTD2 <- out3}
+    #landscape$DFTD2[arrival_raster==100] <- 0
     
     #######################################################
     #Update allele frequencies at each time step
@@ -697,7 +669,7 @@ cellular_automata_dispersal <- function (max_cells = Inf,
       raster::values(allele_raster[[11]]) <- allele_matrix_copy[,,11]
       
       allele_raster[is.na(allele_raster)] <- 0
-      allele_raster[is.na(disease_raster)] <- NA
+      allele_raster[is.na(DFT1_raster)] <- NA
 
       allele_raster[[1]][sum(population_raster)==0] <- NA
       allele_raster[[2]][sum(population_raster)==0] <- NA
@@ -722,67 +694,6 @@ cellular_automata_dispersal <- function (max_cells = Inf,
       landscape$allele_n8 <- allele_raster[[9]]
       landscape$allele_n9 <- allele_raster[[10]]
       landscape$allele_n10 <- allele_raster[[11]]
-      
-      
-      #######################################################
-      #COPY OF OLD CODE
-      #######################################################
-      
-     
-      #allele_raster <- stack(landscape$allele_a, landscape$allele_n) 
-      #allele_raster[is.na(allele_raster)] <- 0
-      #allele_raster[is.na(landscape$disease)] <- NA
-      
-      
-      #allele_matrix <- array(0, dim=c(nrow(allele_raster), ncol(allele_raster), nlayers(allele_raster)))
-      #for (v in 1:nlayers(allele_raster)){
-      #  allele_matrix[,,v] <- raster::as.matrix(allele_raster[[v]])
-      #}
-      #allele_matrix_copy <- allele_matrix  
-      
-      #past_pop_matrix <- raster::as.matrix(past_population)
-      
-      #Loop through each cell - record number of dispersers and allele frequencies
-      #for (v in 1:ncol(dispersal_tracked)) {
-        #if (sum(dispersal_tracked[,v])==0) {next} 
-        #if (sum(dispersal_tracked[,v])>0) {
-          
-          #List sink cell plus sources
-          #cells_to_from <- c(v,which(dispersal_tracked[,v]>0))
-          #Extract allele frequencies from sink and source cells
-          #past_alleles <- allele_matrix[cells_to_from]
-          
-          #past_alleles <- matrix(NA, nrow=nlayers(allele_raster), ncol=length(cells_to_from))
-          #for (w in 1:nlayers(allele_raster)){
-          #  past_alleles[w,] <- allele_matrix[,,w][cells_to_from]
-          #}
-          
-          #Calculate frequency of qq
-          #past_pop <- past_pop_matrix[cells_to_from]
-          #past_pop_weights <- past_pop/sum(past_pop)
-          #for (x in 1:nlayers(allele_raster)){
-           # vals <- allele_matrix_copy[,,x]
-           # vals[v] <- weighted.mean(past_alleles[x,], past_pop_weights, na.rm=TRUE)
-            #if (timestep > 0) {allele_matrix_copy[,,x] <- vals}
-          #}
-        #}
-      #}
-      
-      
-      #for (v in 1:nlayers(allele_raster)){
-      #raster::values(allele_raster[[v]]) <- allele_matrix_copy[,,v]
-      #}
-      #raster::values(allele_raster) <- allele_matrix_copy
-      #raster::values(allele_raster[[1]]) <- allele_matrix_copy[,,1]
-      #raster::values(allele_raster[[2]]) <- allele_matrix_copy[,,2]
-      #allele_raster[is.na(allele_raster)] <- 0
-      #allele_raster[is.na(disease)] <- NA
-      
-      #allele_raster[[1]][sum(population_raster)==0] <- NA
-      #allele_raster[[2]][sum(population_raster)==0] <- NA
-      
-      #landscape$allele_a <- allele_raster[[1]] #allele_raster
-      #landscape$allele_n <- allele_raster[[2]]
       
       ######################################################
       
