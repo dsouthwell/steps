@@ -407,13 +407,13 @@ simulate <- function (i, landscape, population_dynamics, habitat_dynamics, times
       
       # 22.01.20 - # } else {
       
-      if (name != "population" && !is.function(landscape_out[[name]]) &&
-          !is.null(landscape_out[[name]]) && raster::nlayers(landscape_out[[name]]) > 1) {
+  ##   #if (name != "population" && !is.function(landscape_out[[name]]) &&
+          #!is.null(landscape_out[[name]]) && raster::nlayers(landscape_out[[name]]) > 1) {
         
-        landscape_out[[name]] <- landscape_out[[name]][[timestep]]
+        #landscape_out[[name]] <- landscape_out[[name]][[timestep]]
         
         # 22.01.20 - # }
-      }
+  ##    #}
     }
     
     # if (!is.null(landscape_out$suitability) && raster::nlayers(landscape_out$suitability) > 1) {

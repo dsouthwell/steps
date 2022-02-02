@@ -67,8 +67,8 @@ translocation <- function (origins_layer, destinations_layer, stages = NULL, eff
       idx <- which(!is.na(raster::getValues(population_raster[[1]])))
       population_matrix <- raster::extract(population_raster, idx)
       
-      origins <- raster::extract(landscape[[origins_layer]], idx)
-      destinations <- raster::extract(landscape[[destinations_layer]], idx)
+      origins <- raster::extract(landscape[[origins_layer]][[timestep]], idx)
+      destinations <- raster::extract(landscape[[destinations_layer]][[timestep]], idx)
       
       if (is.null(stages)) stages <- seq_len(nstages)
       

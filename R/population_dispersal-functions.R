@@ -399,9 +399,6 @@ cellular_automata_dispersal <- function (max_cells = Inf,
     
     population_raster <- landscape$population
     
-    past_population <- sum(landscape$population) ################################
-    
-    
     # get non-NA cells
     idx <- which(!is.na(raster::values(population_raster[[1]])))
     
@@ -511,13 +508,13 @@ cellular_automata_dispersal <- function (max_cells = Inf,
     }
     
     ######################################################################
-    ##MODEL SPREAD OF DFT1 AND DFT2 BASED ON CUNNINGHAM DIFFUSION MODEL
+    ##MODEL SPREAD OF DFT1 AND DFT2 BASED ON CUNNINGHAM'S DIFFUSION MODEL
     ######################################################################
     
     #Extract disease layers from landscape object
     DFT1_raster <- landscape$DFTD1 #DFT1
     DFT2_raster <- landscape$DFTD2 #DFT2
-    arrival_raster <- landscape$arrival #Estimated disease arrival date ---->>>>CHECK IF THIS IS BEING USED
+    arrival_raster <- landscape$arrival #Estimated disease arrival date ---->>>>CHECK IF/HOW THIS IS USED
     
     #Make cells that became locally extinct susceptible again not infected
     total_pop <- sum(population_raster)
@@ -531,7 +528,7 @@ cellular_automata_dispersal <- function (max_cells = Inf,
     
     #Identify which cells have ages above a certain threshold
     age_class_stack <- sum(landscape$population[[2:6]])
-    age_class_matrix <- raster::as.matrix(age_class_stack)
+    age_class_matrix <- raster::as.matrix(age_class_stack) ########--->> check this maintains the correct dimensions
     age_class_matrix[age_class_matrix > 0] <- 1
     
     #Turn rasters into matrices
@@ -540,7 +537,7 @@ cellular_automata_dispersal <- function (max_cells = Inf,
     arrival_matrix <- raster::as.matrix(arrival_raster)
     
     #Which cells are occupied with DFT1 and DFT2
-    source <- which(DFT1_matrix==1)  #------------------------>>>>>>CHANGE SOURCE AND SOURCE2
+    source <- which(DFT1_matrix==1)  #------------------------>>>>>>CHANGE NAME - SOURCE AND SOURCE2
     source2 <- which(DFT2_matrix==1)
     
     #Specify spread neighborhood (15km) for DFT1 and DFT2 around infected cells 
@@ -584,8 +581,6 @@ cellular_automata_dispersal <- function (max_cells = Inf,
     #}
     
     #if (timestep >= 9) {DFT1_matrix[cells_to] <- 1} ########SWITCH BETWEEN 0 AND 1
-    #DFT1_matrix[which(arrival_matrix< timestep)] <- 0 ########SWITCH BETWEEN 0 AND 1
-    #raster::values(DFT1_raster) <- DFT1_matrix
   
     DFT1_raster_new <- DFT1_raster + out
     DFT1_raster_new[DFT1_raster_new > 1] <- 1
@@ -597,111 +592,64 @@ cellular_automata_dispersal <- function (max_cells = Inf,
     DFT2_raster_new[arrival_raster==100] <- 0
     landscape$DFTD2 <-  DFT2_raster_new
     
-    #if (timestep < 30) {landscape$DFTD2 <- DFT2_raster} else {landscape$DFTD2 <- out3}
-    #landscape$DFTD2[arrival_raster==100] <- 0
+    ######################################################################
+    ##UPDATE ALLELE FREQUENCIES BASED ON DISPERSAL AT EACH TIME STEP
+    ######################################################################
     
-    #######################################################
-    #Update allele frequencies at each time step
-    #######################################################
+    #Make raster stack out of allele frequencies 
+    allele_raster <- landscape$allele_frequencies
+    H_new <- landscape$Heterozygosity
     
-    #past_population <- sum(landscape$population)
-    #allele_raster <- landscape$allele
-    allele_raster <- stack(landscape$allele_a, landscape$allele_n, landscape$allele_n2, landscape$allele_n3, landscape$allele_n4,
-                           landscape$allele_n5, landscape$allele_n6, landscape$allele_n7, landscape$allele_n8, landscape$allele_n9, landscape$allele_n10) 
-    allele_raster[is.na(allele_raster)] <- 0
-    allele_raster[is.na(landscape$DFTD1)] <- NA
-    #allele_raster <- stack(allele_ad, allele_n)
-    #allele_raster <- allele_fr
-    #allele_matrix <- raster::as.matrix(allele_raster)
+    #allele_raster[is.na(allele_raster)] <- 0     #Make NAs equal to 0 - NOT SURE WHY YET?
+    #allele_raster[is.na(landscape$DFTD1)] <- NA  #So this cancels out the above line - so can delete both?
     
+    #Create empty 3D matrix to put raster values
     allele_matrix <- array(0, dim=c(nrow(allele_raster), ncol(allele_raster), raster::nlayers(allele_raster)))
-    for (v in 1:(raster::nlayers(allele_raster))){
-      allele_matrix[,,v] <- raster::as.matrix(allele_raster[[v]])
-    }
-    allele_matrix_copy <- allele_matrix  
     
-    #allele_matrix_copy <- raster::as.matrix(allele_raster)
-    past_pop_matrix <- raster::as.matrix(past_population)
+    #Populate 3D matrix with values from raster stack
+    for (v in 1:(raster::nlayers(allele_raster))){allele_matrix[,,v] <- raster::as.matrix(allele_raster[[v]])}
+    
+    #Make copy of allele matrix
+    allele_matrix_copy <- allele_matrix ##########NO NEED TO MAKE THIS COPY  
+    
+    #Extract total population in each cell and turn into matrix
+    population_matrix <- raster::as.matrix(sum(landscape$population))
   
-    #Loop through each cell - record number of dispersers and allele frequencies
+    #Loop through each cell - record number of dispersers and allele frequencies (check dimensions match)
+    #colnames(dispersal_tracked) <- c(1:ncol(dispersal_tracked))
+    #test <- dispersal_tracked[, colSums(dispersal_tracked != 0) > 0]
+    
     for (v in 1:ncol(dispersal_tracked)) {
-      if (sum(dispersal_tracked[,v])==0) {next} 
       if (sum(dispersal_tracked[,v])>0) {
-        
-          #List sink cell plus sources
-          cells_to_from <- c(v,which(dispersal_tracked[,v]>0))
-          #Extract allele frequencies from sink and source cells
-          #past_alleles <- allele_matrix[cells_to_from]
-          
-          past_alleles <- matrix(NA, nrow=nlayers(allele_raster), ncol=length(cells_to_from))
-          for (w in 1:nlayers(allele_raster)){
-            past_alleles[w,] <- allele_matrix[,,w][cells_to_from]
-          }
-          
-          #Calculate frequency of qq
-          #qq_freq <- sqrt(past_alleles)
-          #Extract population size from sink and source cells
-          past_pop <- past_pop_matrix[cells_to_from]
-          past_pop_weights <- past_pop/sum(past_pop)
-          for (x in 1:nlayers(allele_raster)){
-            vals <- allele_matrix_copy[,,x]
-            vals[v] <- weighted.mean(past_alleles[x,], past_pop_weights, na.rm=TRUE)
-            if (timestep > 0) {allele_matrix_copy[,,x] <- vals}
-          }
+        cells_to_from <- c(v, which(dispersal_tracked[,v]>0))
+        past_alleles <- matrix(NA, nrow=nlayers(allele_raster), ncol=length(cells_to_from))
+        for (w in 1:nlayers(allele_raster)){past_alleles[w,] <- allele_matrix[,,w][cells_to_from]}
+        past_pop <- c(population_matrix[cells_to_from][1], dispersal_tracked[cells_to_from, v][-1])
+        past_pop_weights <- past_pop/sum(past_pop)
+        for (x in 1:nlayers(allele_raster)){
+          weighted_allele <- weighted.mean(past_alleles[x,], past_pop_weights, na.rm=TRUE)
+          allele_slice <- allele_matrix_copy[,,x]
+          allele_slice[v] <- weighted_allele
+          allele_matrix_copy[,,x] <- allele_slice
+        }
       }
     }
     
-    
-    #for (v in 1:nlayers(allele_raster)){
-      #raster::values(allele_raster[[v]]) <- allele_matrix_copy[,,v]
-    #}
-      #raster::values(allele_raster) <- allele_matrix_copy
-      raster::values(allele_raster[[1]]) <- allele_matrix_copy[,,1]
-      raster::values(allele_raster[[2]]) <- allele_matrix_copy[,,2]
-      raster::values(allele_raster[[3]]) <- allele_matrix_copy[,,3]
-      raster::values(allele_raster[[4]]) <- allele_matrix_copy[,,4]
-      raster::values(allele_raster[[5]]) <- allele_matrix_copy[,,5]
-      raster::values(allele_raster[[6]]) <- allele_matrix_copy[,,6]
-      raster::values(allele_raster[[7]]) <- allele_matrix_copy[,,7]
-      raster::values(allele_raster[[8]]) <- allele_matrix_copy[,,8]
-      raster::values(allele_raster[[9]]) <- allele_matrix_copy[,,9]
-      raster::values(allele_raster[[10]]) <- allele_matrix_copy[,,10]
-      raster::values(allele_raster[[11]]) <- allele_matrix_copy[,,11]
+      #allele_raster <- allele_matrix_copy
+    for (zz in 1:nlayers(allele_raster)) {raster::values(allele_raster[[zz]]) <- allele_matrix_copy[,,zz]}
       
       allele_raster[is.na(allele_raster)] <- 0
       allele_raster[is.na(DFT1_raster)] <- NA
-
-      allele_raster[[1]][sum(population_raster)==0] <- NA
-      allele_raster[[2]][sum(population_raster)==0] <- NA
-      allele_raster[[3]][sum(population_raster)==0] <- NA
-      allele_raster[[4]][sum(population_raster)==0] <- NA
-      allele_raster[[5]][sum(population_raster)==0] <- NA
-      allele_raster[[6]][sum(population_raster)==0] <- NA
-      allele_raster[[7]][sum(population_raster)==0] <- NA
-      allele_raster[[8]][sum(population_raster)==0] <- NA
-      allele_raster[[9]][sum(population_raster)==0] <- NA
-      allele_raster[[10]][sum(population_raster)==0] <- NA
-      allele_raster[[11]][sum(population_raster)==0] <- NA
       
-      landscape$allele_a <- allele_raster[[1]] #allele_raster
-      landscape$allele_n <- allele_raster[[2]]
-      landscape$allele_n2 <- allele_raster[[3]]
-      landscape$allele_n3 <- allele_raster[[4]]
-      landscape$allele_n4 <- allele_raster[[5]]
-      landscape$allele_n5 <- allele_raster[[6]]
-      landscape$allele_n6 <- allele_raster[[7]]
-      landscape$allele_n7 <- allele_raster[[8]]
-      landscape$allele_n8 <- allele_raster[[9]]
-      landscape$allele_n9 <- allele_raster[[10]]
-      landscape$allele_n10 <- allele_raster[[11]]
+      #Update heterozygosity
+      H_new <- calc_heterozygosity(frequencies = allele_raster)
       
-      ######################################################
-      
+      landscape$allele_frequencies <- allele_raster
+      landscape$Heterozygosity <- H_new
     
+      #####################################################
     landscape$population <- population_raster
       
-    #cat("Pre-Post Population:", poptot, sum(raster::cellStats(landscape$population, sum)), "(Timestep", timestep, ")", "\n")
-    #dispersal_tracked ################################
     landscape
 
   }
