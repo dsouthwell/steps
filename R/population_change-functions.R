@@ -255,6 +255,7 @@ growth <- function (transition_matrix,
     population_raster[cell_idx] <- pop_new
     HO_raster[cell_idx] <- Hcombine
     allele_stack[cell_idx] <- Q_new
+    H0_raster <- calc_heterozygosity(frequencies = allele_stack)
     
     landscape$Heterozygosity <- HO_raster
     landscape$population <- population_raster
