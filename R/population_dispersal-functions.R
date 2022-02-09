@@ -333,17 +333,17 @@ kernel_dispersal <- function (dispersal_kernel = exponential_dispersal_kernel(di
 #' automata dispersal depends on the permeability of the landscape, and is
 #' interrupted on reaching a cell with available capacity. A heuristic that can be
 #' used to determine a reasonable number of steps from a mean dispersal distance `d`
-#' and cell resolution `res` is: `max_cells = round(2 * (d / (res * 1.25)) ^ 2)`.
+#' and cell resolution `res` is: `mean_cells = round(2 * (d / (res * 1.25)) ^ 2)`.
 #' This corresponds approximately to the number of cell-steps in an infinite,
 #' homogenous landscape with no early stopping, for which d is the mean
 #' end-to-end dispersal distance of all individuals.
 #'
 #' Rather than relying on this value, we recommend that the user experiment with
-#' the \code{max_cells} parameter to find a value such that the the mean dispersal
+#' the \code{mean_cells} parameter to find a value such that the the mean dispersal
 #' distance in a reasonably realistic simulation corresponds with field estimates
 #' of mean dispersal distances.
 #'
-#' @param max_cells the maximum number of cell movements that each individual in
+#' @param mean_cells the maximum number of cell movements that each individual in
 #'   each life stage can disperse in whole integers.
 #' @param dispersal_proportion a built-in or custom function defining the proportions
 #'   of individuals that can disperse in each life stage.
@@ -368,7 +368,7 @@ kernel_dispersal <- function (dispersal_kernel = exponential_dispersal_kernel(di
 #' # (reduced dispersal across barrier).
 #' 
 #' \dontrun{
-#' ca_dispersal <- cellular_automata_dispersal(max_cells = c(0, 100, 100), barriers = "roads")
+#' ca_dispersal <- cellular_automata_dispersal(mean_cells = c(0, 100, 100), barriers = "roads")
 #' 
 #' ls <- landscape(population = egk_pop,
 #'                 suitability = egk_hab,
@@ -382,7 +382,7 @@ kernel_dispersal <- function (dispersal_kernel = exponential_dispersal_kernel(di
 #' simulation(landscape = ls, population_dynamics = pd, habitat_dynamics = NULL, timesteps = 20)
 #' }
 
-cellular_automata_dispersal <- function (max_cells = Inf,
+cellular_automata_dispersal <- function (mean_cells = Inf,
                                          dispersal_proportion = set_proportion_dispersing(),
                                          barriers = NULL,
                                          use_suitability = TRUE,
@@ -437,34 +437,34 @@ cellular_automata_dispersal <- function (max_cells = Inf,
     # work out dispersal proportions for eligible life-stages with input function
     dispersal_proportion <- dispersal_proportion(landscape, timestep)
     
-    # if max_cells is the default (Infinite), rescale to maximum distance of landscape
-    default_distance <- identical(max_cells, Inf)
+    # if mean_cells is the default (Infinite), rescale to maximum distance of landscape
+    default_distance <- identical(mean_cells, Inf)
     
     if (default_distance) {
       n_rows <- raster::nrow(population_raster[[1]])
       n_cols <- raster::ncol(population_raster[[1]])
       res <- raster::res(population_raster[[1]])
-      max_cells <- sqrt( (n_cols * res[1])^2 + (n_rows * res[2])^2 )
+      mean_cells <- sqrt( (n_cols * res[1])^2 + (n_rows * res[2])^2 )
     }
     
     # handle dispersal distances as both scalars and vectors
     if(!default_distance) {
-      warn_once(length(max_cells) < n_stages | length(max_cells) > n_stages,
+      warn_once(length(mean_cells) < n_stages | length(mean_cells) > n_stages,
                 paste(n_stages,
                       "life stages exist but",
-                      length(max_cells),
+                      length(mean_cells),
                       "maximum cell movement(s) of",
-                      paste(max_cells, collapse = ", "),
+                      paste(mean_cells, collapse = ", "),
                       "were specified.\nAll life stages will use this distance."),
                 warning_name = "dispersal_distances")
     }
     
-    if (length(max_cells) < n_stages | length(max_cells) > n_stages) {
-      max_cells <- rep_len(max_cells, n_stages)
+    if (length(mean_cells) < n_stages | length(mean_cells) > n_stages) {
+      mean_cells <- rep_len(mean_cells, n_stages)
     }
     
     # identify dispersing stages
-    which_stages_disperse <- which(dispersal_proportion > 0 & max_cells > 0)
+    which_stages_disperse <- which(dispersal_proportion > 0 & mean_cells > 0)
     
     # if no barrier map is specified, create a barriers matrix with all zeros.
     if (is.null(barriers)) {
@@ -495,7 +495,7 @@ cellular_automata_dispersal <- function (max_cells = Inf,
       dispersed <- rcpp_dispersal(raster::as.matrix(population_raster[[i]]),
                                   raster::as.matrix(cc),
                                   raster::as.matrix(permeability_map),
-                                  as.integer(max_cells[i]),
+                                  as.integer(mean_cells[i]),
                                   as.numeric(dispersal_proportion[i]))
       
       population_raster[[i]][] <- dispersed$future_population
@@ -564,10 +564,14 @@ cellular_automata_dispersal <- function (max_cells = Inf,
                        0.00,1.00,0.00),
                       nrow=3,ncol=3)
     
+    if (DFT2_scen == 1) {nei <- dist_10}
+    if (DFT2_scen == 2) {nei <- dist_5}
+    if (DFT2_scen == 3) {nei <- dist_15}
+    
     #Now run diffusion of DFT1 and DFT2 after 9 years and 30 years respectively. The argument "1" means that cells occupied by all age classes
     #can spread DFT, whereas a value of "2" means that only cells with some devils >1 year old spread DFT
     if (timestep < 9) {out <- DFT1_raster} else {out <- DFT_diffusion(DFT1_raster, age_class_matrix, density_raster_scaled, dist_15)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
-    if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion(DFT2_raster, age_class_matrix, density_raster_scaled, dist_5)}
+    if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion(DFT2_raster, age_class_matrix, density_raster_scaled, neighborhood = nei)}
     
     #Now model spread of DFT1 through migration when individuals move and establish to neighbouring cells
     #In the diffusion model, cells with low densities have a low probability of being infected
@@ -580,8 +584,10 @@ cellular_automata_dispersal <- function (max_cells = Inf,
       #cells_to <- c(cells_to, out2)
     #}
     
-    #if (timestep >= 9) {DFT1_matrix[cells_to] <- 1} ########SWITCH BETWEEN 0 AND 1
-  
+    #DFT1_disperal_raster <- landscape$DFTD1
+    #if (timestep >= 9) {DFT1_disperal_raster[cells_to] <- 1} ########SWITCH BETWEEN 0 AND 1
+    #landscape$DFTD1 <-  DFT1_disperal_raster
+    
     DFT1_raster_new <- DFT1_raster + out
     DFT1_raster_new[DFT1_raster_new > 1] <- 1
     DFT1_raster_new[arrival_raster==100] <- 0
