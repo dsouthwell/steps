@@ -490,7 +490,6 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     # could do this in parallel
     
-    
     for (i in which_stages_disperse){
       dispersed <- rcpp_dispersal(raster::as.matrix(population_raster[[i]]),
                                   raster::as.matrix(cc),
@@ -502,9 +501,18 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       
       steps_stash$dispersal_stats_success[[i]] <- dispersed$dispersed
       steps_stash$dispersal_stats_failure[[i]] <- dispersed$failed
-     
+      
+      #Track all dispersal events
+      
       if (which(i %in% which_stages_disperse) == 1) {dispersal_tracked <- dispersed$tracked} 
-      dispersal_tracked <- dispersal_tracked + dispersed$tracked 
+      dispersal_tracked <- dispersal_tracked + dispersed$tracked
+      
+      #if (which(i %in% which_stages_disperse) == 1) {dispersal_tracked <- dispersal_tracked + dispersed$tracked} 
+      
+      
+      #Don't track movement of juveniles, only sub-adults and adults
+      #if (i %in% c(2,3,4,5,6,8,9,10,11,12)) {disease_tracked <- disease_tracked + dispersed$tracked}
+      
     }
     
     ######################################################################
@@ -527,7 +535,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     density_raster_scaled <- density_raster/maxValue(max_density) #Density in current time step is scaled against maximum possible time step
     
     #Identify which cells have ages above a certain threshold
-    age_class_stack <- sum(landscape$population[[2:6]])
+    age_class_stack <- sum(landscape$population[[1:6]])
     age_class_matrix <- raster::as.matrix(age_class_stack) ########--->> check this maintains the correct dimensions
     age_class_matrix[age_class_matrix > 0] <- 1
     
@@ -537,8 +545,8 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     arrival_matrix <- raster::as.matrix(arrival_raster)
     
     #Which cells are occupied with DFT1 and DFT2
-    source <- which(DFT1_matrix==1)  #------------------------>>>>>>CHANGE NAME - SOURCE AND SOURCE2
-    source2 <- which(DFT2_matrix==1)
+    DFT1_occ <- which(DFT1_matrix==1)  #------------------------>>>>>>CHANGE NAME - SOURCE AND SOURCE2
+    DFT2_occ <- which(DFT2_matrix==1)
     
     #Specify spread neighborhood (15km) for DFT1 and DFT2 around infected cells 
     dist_15 <- matrix(c(0.00,0.00,1.00,1.00,1.00,0.00,0.00, 
@@ -564,39 +572,67 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
                        0.00,1.00,0.00),
                       nrow=3,ncol=3)
     
-    if (DFT2_scen == 1) {nei <- dist_10}
-    if (DFT2_scen == 2) {nei <- dist_5}
-    if (DFT2_scen == 3) {nei <- dist_15}
+    #if (DFT2_scen == 1) {nei <- dist_10}
+    #if (DFT2_scen == 2) {nei <- dist_5}
+   # if (DFT2_scen == 3) {nei <- dist_15}
     
     #Now run diffusion of DFT1 and DFT2 after 9 years and 30 years respectively. The argument "1" means that cells occupied by all age classes
     #can spread DFT, whereas a value of "2" means that only cells with some devils >1 year old spread DFT
-    if (timestep < 9) {out <- DFT1_raster} else {out <- DFT_diffusion(DFT1_raster, age_class_matrix, density_raster_scaled, dist_15)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
-    if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion(DFT2_raster, age_class_matrix, density_raster_scaled, neighborhood = nei)}
+    #if (timestep < 9) {out <- DFT1_raster} else {out <- DFT_diffusion(DFT1_raster, age_class_matrix, density_raster_scaled, dist_15)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
+    #if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion(DFT2_raster, age_class_matrix, density_raster_scaled, neighborhood = nei)}
     
     #Now model spread of DFT1 through migration when individuals move and establish to neighbouring cells
     #In the diffusion model, cells with low densities have a low probability of being infected
     #In this component, they can more easily become infected because individuals are more likely to settle in low density cells 
     
     #ADD INDIVIDUAL MOVEMENT OF DISEASE BACK INTO THE CODE LATER
-    #cells_to <- c()
-    #for (v in source){
-      #out2 <- which(dispersal_tracked[v,]>=1) 
-      #cells_to <- c(cells_to, out2)
-    #}
+    DFT1_disperal_raster <- landscape$DFTD1
+    DFT1_disperal_matrix <- raster::as.matrix(DFT1_disperal_raster)
     
-    #DFT1_disperal_raster <- landscape$DFTD1
-    #if (timestep >= 9) {DFT1_disperal_raster[cells_to] <- 1} ########SWITCH BETWEEN 0 AND 1
-    #landscape$DFTD1 <-  DFT1_disperal_raster
+    for (v in DFT1_occ){
+      if (timestep >= 9) {
+        cells_to <- which(dispersal_tracked[v,]>=1) 
+        n_dispersers <- dispersal_tracked[v, cells_to]
+        source_infected <- 1 - sample(ABC_rej[,2], 1)
+        dispersers_infected <- 1 - (1 - source_infected)^n_dispersers
+        infected_cells <- ifelse(runif(length(cells_to)) < dispersers_infected, 1, 0)
+        cells_to <- cells_to[infected_cells == 1]
+        DFT1_disperal_matrix[cells_to] <- 1
+      }
+    }
     
-    DFT1_raster_new <- DFT1_raster + out
-    DFT1_raster_new[DFT1_raster_new > 1] <- 1
-    DFT1_raster_new[arrival_raster==100] <- 0
-    landscape$DFTD1 <-  DFT1_raster_new
+    DFT2_disperal_raster <- landscape$DFTD2
+    DFT2_disperal_matrix <- raster::as.matrix(DFT2_disperal_raster)
     
-    DFT2_raster_new <- DFT2_raster + out3
-    DFT2_raster_new[DFT2_raster_new > 1] <- 1
-    DFT2_raster_new[arrival_raster==100] <- 0
-    landscape$DFTD2 <-  DFT2_raster_new
+    for (v in DFT2_occ){
+      if (timestep >= 30) {
+        cells_to <- which(dispersal_tracked[v,]>=1) 
+        n_dispersers <- dispersal_tracked[v, cells_to]
+        source_infected <- 1 - sample(ABC_rej[,2], 1)
+        dispersers_infected <- 1 - (1 - source_infected)^n_dispersers
+        infected_cells <- ifelse(runif(length(cells_to)) < dispersers_infected, 1, 0)
+        cells_to <- cells_to[infected_cells == 1]
+        DFT2_disperal_matrix[cells_to] <- 1
+      }
+    }
+    
+    DFT1_disperal_raster[] <- DFT1_disperal_matrix
+    DFT1_disperal_raster[age_class_stack == 0] <- 0
+    landscape$DFTD1 <-  DFT1_disperal_raster
+    
+    DFT2_disperal_raster[] <- DFT2_disperal_matrix
+    DFT2_disperal_raster[age_class_stack == 0] <- 0
+    landscape$DFTD2 <-  DFT2_disperal_raster
+    
+    #DFT1_raster_new <- DFT1_raster + out
+    #DFT1_raster_new[DFT1_raster_new > 1] <- 1
+    #DFT1_raster_new[arrival_raster==100] <- 0
+    #landscape$DFTD1 <-  DFT1_raster_new
+    
+    #DFT2_raster_new <- DFT2_raster + out3
+    #DFT2_raster_new[DFT2_raster_new > 1] <- 1
+    #DFT2_raster_new[arrival_raster==100] <- 0
+    #landscape$DFTD2 <-  DFT2_raster_new
     
     ######################################################################
     ##UPDATE ALLELE FREQUENCIES BASED ON DISPERSAL AT EACH TIME STEP

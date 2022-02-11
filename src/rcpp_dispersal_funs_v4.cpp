@@ -47,8 +47,8 @@ IntegerVector can_source_cell_disperse(int source_y,
   dest_y = source_y;
   dest_x = source_x;
   
-  sink_found[0] = source_y;
-  sink_found[1] = source_x;
+  //sink_found[0] = source_y;
+  //sink_found[1] = source_x;
   
   for (cell = 0; cell < n_cells; cell++){ // Increment cell movements up to a maximum
     
@@ -152,7 +152,7 @@ IntegerVector can_source_cell_disperse(int source_y,
     
    
     
-    if(cell = n_cells) {
+    if(cell == n_cells - 1) {
       sink_carrying_cap = 0;
       
       if(!R_IsNA(carrying_capacity_available(dest_y, dest_x)) &&
@@ -171,7 +171,7 @@ IntegerVector can_source_cell_disperse(int source_y,
         sink_found[1] = dest_x;
         break;
       }
-      
+     
     }
     
   }
