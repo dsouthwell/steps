@@ -169,28 +169,52 @@ growth <- function (transition_matrix,
     
     if (steps_stash$demo_stochasticity == "full") {
       
-      n_loci <- nlayers(allele_stack)
-      H_new <- Q_new  <- allele_matrix
+      
+      #H_new <- Q_new  <- allele_matrix
       
       #Loop through each loci
-      for (kk in 1:n_loci) {
+      #for (kk in 1:n_loci) {
         
-        outsurv <- genotypes <- split_genotype(Population=population, allele=allele_matrix[,kk])
+        #outsurv <- genotypes <- split_genotype(Population=population, allele=allele_matrix[,kk])
         
         #Change the survival rates is modelling an adaptive loci
-        if (kk == n_loci & timestep > 150) {
+        #if (kk == n_loci & timestep > 150) {
           
-          rws <- dim(transition_array)[1]
-          resistance <- which(rowSums(genotypes[[3]])>0 & disease==1)
-          if (length(resistance) > 0){
-            transition_array[2:rws,,resistance] <- transition_array[2:rws,,resistance] * 1.00
-          }
-        }
+          #rws <- dim(transition_array)[1]
+          #resistance <- which(rowSums(genotypes[[3]])>0 & disease==1)
+          #if (length(resistance) > 0){
+            #transition_array[2:rws,,resistance] <- transition_array[2:rws,,resistance] * 1.00
+          #}
+        #}
+        
+        #Split by females and males and pair for breeding
+        #females <- genotypes[,1:6,]
+        #males <- genotypes[,7:12,]
+        
+    
+        #for (v in 1:dim(genotypes)[1]) {
+          #pp_females <- sum(females[v,,1]) 
+          #pq_females <- sum(females[v,,2])
+          #Ind_females <- data.frame("Females" = c(1:sum(females[v,,1:3])), "genotype" = NA, "Pair" = 0)
+          #Ind_females[1:pp_females,2] <- "pp"
+          #Ind_females[(pp_females+1):(pp_females + pq_females),2] <- "pq"
+          #Ind_females[is.na(Ind_females)] <- "qq"
+          
+          #pp_males <- sum(males[v,,1]) 
+          #pq_males <- sum(males[v,,2])
+          #Ind_males <- data.frame("Males" = c(1:sum(males[v,,1:3])), "genotype" = NA)
+          #Ind_males[1:pp_males,2] <- "pp"
+          #Ind_males[(pp_males+1):(pp_males + pq_males),2] <- "pq"
+          #Ind_males[is.na(Ind_males)] <- "qq"
+          #Ind_females[,3] <- sample(Ind_males[,2],length(Ind_females[,2]),replace=TRUE)
+        #}
+        
+        
         
         #loop through genotypes
-        for (ss in 1:dim(genotypes)[3]) { 
-          
-          population2 <- genotypes[,,ss]
+        #for (ss in 1:dim(genotypes)[3]) { 
+          n_loci <- nlayers(allele_stack)
+          population2 <- population
           
           total_pop <- rowSums(population2)
           if (sum(total_pop) == 0) {next}
@@ -203,9 +227,34 @@ growth <- function (transition_matrix,
           
           if (transition_order == "fecundity" && sum(has_pop) >= 1) {
             # first step - perform fecundity to add individuals to the populations
-            new_population <- add_offspring(population2[has_pop, ], transition_array[ , , has_pop], fec_rows) # updated 23.10.20
+            new_population <- add_offspring_edits(population2[has_pop, ], transition_array[ , , has_pop], fec_rows) # updated 23.10.20
+            
+            
+            #For each loci, randomly sample allele frequency of offspring given #offspring, number parents and parent allele frequency
+            offspring_both_sexes <- rowSums(new_population) #total male and female offspring
+            allele_matrix_offspring <- allele_matrix
+            for (kk in 1:n_loci) {
+              offspring_p <- rbinom(offspring_both_sexes, total_pop[has_pop] * 2, allele_matrix[,kk][has_pop])
+              offspring_p <- offspring_p/(total_pop[has_pop] * 2)
+              allele_matrix_offspring[,kk][has_pop] <- offspring_p
+            }
+            
+            
             # second step - perform survival on new population
             surv_population <- surviving_population(population2[has_pop, ], transition_array[ , , has_pop], fec_rows) # updated 23.10.20
+            
+            allele_matrix_new <- allele_matrix
+            
+            for (kk in 1:n_loci) {
+              
+              genotypes_offspring <- split_genotype(Population=new_population, allele=allele_matrix_offspring[,kk])
+              genotypes_adults <- split_genotype(Population=surv_population, allele=allele_matrix[,kk])
+              genotypes_adults[ , fec_rows,] <- genotypes_adults[ , fec_rows,] + genotypes_offspring
+              allele_matrix_new[has_pop,kk] <- (2 * rowSums(genotypes_adults[,,1]) + rowSums(genotypes_adults[,,2]))/(2*rowSums(genotypes_adults[,,1:3])) 
+              
+            }
+            
+            
             # add new and surviving populations
             surv_population[ , fec_rows] <- surv_population[ , fec_rows] + new_population
             population2[has_pop, ] <- surv_population
@@ -216,31 +265,31 @@ growth <- function (transition_matrix,
             # first step - perform survival on population
             surv_population <- surviving_population(population2[has_pop, ], transition_array[ , , has_pop], fec_rows) # updated 23.10.20
             # second step - perform fecundity to add individuals to the populations
-            new_population <- add_offspring(surv_population, transition_array[ , , has_pop], fec_rows) # updated 23.10.20
+            new_population <- add_offspring_edits(surv_population, transition_array[ , , has_pop], fec_rows) # updated 23.10.20
             # add new and surviving populations
             surv_population[ , fec_rows] <- surv_population[ , fec_rows] + new_population
             population2[has_pop, ] <- surv_population
           }
           
-          outsurv[,,ss] <- population2 
+          #outsurv[,,ss] <- population2 
           
-        } #End of loop through different genotypes for allele i 
+        #} #End of loop through different genotypes for allele i 
         
         #Calculate new p and q based on survival and fecundity
-        if (kk==1) {pop_new <- outsurv[,,1] + outsurv[,,2] + outsurv[,,3]}
-        finalpop <- outsurv[,,1] + outsurv[,,2] + outsurv[,,3]
+        #if (kk==1) {pop_new <- outsurv[,,1] + outsurv[,,2] + outsurv[,,3]}
+        #finalpop <- outsurv[,,1] + outsurv[,,2] + outsurv[,,3]
         
         #Adaptive allele
-        pnew <- (2 * rowSums(outsurv[,,1]) + rowSums(outsurv[,,2]))/(2*rowSums(finalpop)) #Check equation
-        qnew <- 1 - pnew    
-        Hnew <- 1 - (pnew)^2
+        #pnew <- (2 * rowSums(outsurv[,,1]) + rowSums(outsurv[,,2]))/(2*rowSums(finalpop)) #Check equation
+        #qnew <- 1 - pnew    
+        #Hnew <- 1 - (pnew)^2
         
-        Q_new[,kk] <- qnew
-        H_new[,kk] <- Hnew
+        #Q_new[,kk] <- qnew
+        #H_new[,kk] <- Hnew
         
-      } #End allele loop
+      #} #End loci loop
       
-      Hcombine <- 1/n_loci*(rowSums(H_new))
+      #Hcombine <- 1/n_loci*(rowSums(H_new))
       
     } else {
       
@@ -252,9 +301,9 @@ growth <- function (transition_matrix,
     }
     
     # put back in the raster
-    population_raster[cell_idx] <- pop_new
-    HO_raster[cell_idx] <- Hcombine
-    allele_stack[cell_idx] <- Q_new
+    population_raster[cell_idx] <- population2
+    #HO_raster[cell_idx] <- Hcombine
+    allele_stack[cell_idx] <- allele_matrix_new
     H0_raster <- calc_heterozygosity(frequencies = allele_stack)
     
     landscape$Heterozygosity <- HO_raster
@@ -524,6 +573,34 @@ add_offspring <- function (population, transition_array, fec_rows) { # updated 2
   
   return(new_offspring) # updated 23.10.20
 }
+
+add_offspring_edits <- function (population, transition_array, fec_rows) { # updated 23.10.20
+  
+  pops <- population
+  
+  # updated 23.10.20
+  new_offspring <- sapply(fec_rows,
+                          function(x) {
+                            # get fecundities for all eligible stages
+                            if (class(transition_array) == "matrix") {
+                              fecundities <- t(transition_array[x, ])
+                            } else {
+                              fecundities <- t(transition_array[x, , ])
+                            }
+                            
+                            # get expected number, then do a poisson draw about this
+                            expected_offspring <- fecundities * pops
+                            new_offspring_stochastic <- expected_offspring
+                            new_offspring_stochastic[] <- stats::rpois(length(expected_offspring), expected_offspring[])
+                            
+                            # sum stage 1s created by all other stages
+                            rowSums(new_offspring_stochastic)
+                          })
+  
+  return(new_offspring) # updated 23.10.20
+}
+
+
 
 surviving_population <- function (population, transition_array, fec_rows) { # updated 23.10.20
   survival_array <- transition_array
