@@ -531,7 +531,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     density_raster_scaled <- density_raster/maxValue(max_density) #Density in current time step is scaled against maximum possible time step
     
     #Identify which cells have ages above a certain threshold
-    age_class_stack <- sum(landscape$population[[1:6]])
+    age_class_stack <- sum(landscape$population[[-c(1,7)]])
     age_class_matrix <- raster::as.matrix(age_class_stack) ########--->> check this maintains the correct dimensions
     age_class_matrix[age_class_matrix > 0] <- 1
     
@@ -574,8 +574,8 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     #Now run diffusion of DFT1 and DFT2 after 9 years and 30 years respectively. The argument "1" means that cells occupied by all age classes
     #can spread DFT, whereas a value of "2" means that only cells with some devils >1 year old spread DFT
-    if (timestep < 9) {out <- DFT1_raster} else {out <- DFT_diffusion_iterative(DFT1_raster, age_class_matrix, density_raster_scaled, dist_15)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
-    if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion_iterative(DFT2_raster, age_class_matrix, density_raster_scaled, neighborhood = dist_15)}
+    if (timestep < 9) {out <- DFT1_raster} else {out <- DFT_diffusion_iterative(DFT1_raster, age_class_matrix, density_raster_scaled, dist_5, 4)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
+    if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion_iterative(DFT2_raster, age_class_matrix, density_raster_scaled, neighborhood = dist_5, 4)}
     
     #Now model spread of DFT1 through migration when individuals move and establish to neighbouring cells
     #In the diffusion model, cells with low densities have a low probability of being infected
