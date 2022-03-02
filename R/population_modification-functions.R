@@ -138,7 +138,7 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
        #   for (jj in 1:nrow(new_alleles)) {
        #     new_alleles[jj,kk] <- weighted.mean(c(old_alleles[jj,kk], trans_alleles[jj,kk]), c(wgts_old[jj], wgts_trans[jj]))
        #   }
-       # }
+       #}
         
         #H_new <- calc_heterozygosity(frequencies = new_alleles)
         #allele_matrix[sink_locations, ] <- new_alleles
