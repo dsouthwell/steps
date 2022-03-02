@@ -149,9 +149,9 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
         #H_raster <- calc_heterozygosity(frequencies = allele_raster)
         #landscape$allele_frequencies <- allele_raster
         
-        landscape$Heterozygosity <- H_raster
+        #landscape$Heterozygosity <- H_raster
         
-      }
+      #}
       # put back in the raster
       population_raster[idx] <- population_matrix
       
