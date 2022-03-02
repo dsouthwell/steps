@@ -109,12 +109,12 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       if (sum(origins1) > 0) {
         allele_source1 <- allele_matrix[which(origins1 > 0),]
         allele_mean1 <- colMeans(allele_source1)
-      }
+      } else {allele_source1 <-  matrix(0, ncol=11, nrow=1)}
       
       if (sum(origins2) > 0) {
         allele_source2 <- allele_matrix[which(origins2 > 0),]
         allele_mean2 <- colMeans(allele_source2)
-      }
+      } else {allele_source2 <-  matrix(0, ncol=11, nrow=1)}
       
       wgts_source <- c(sum(origins1)/(sum(origins1) + sum(origins2)), sum(origins2)/(sum(origins1) + sum(origins2)))
       for (ss in 1:length(allele_source1)) {
