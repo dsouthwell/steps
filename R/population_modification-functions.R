@@ -104,50 +104,50 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       
       #Calculate weighted heterozygosity of source population (origins 1 and origins 2)
       
-      allele_source1 <- allele_source2 <- allele_source <- matrix(0, ncol=11, nrow=1)
+      #allele_source1 <- allele_source2 <- allele_source <- matrix(0, ncol=11, nrow=1)
       
-      if (sum(origins1) > 0) {
-        allele_source1 <- allele_matrix[which(origins1 > 0),]
-        allele_mean1 <- colMeans(allele_source1)
-      } else {allele_source1 <-  matrix(0, ncol=11, nrow=1)}
+      #if (sum(origins1) > 0) {
+        #allele_source1 <- allele_matrix[which(origins1 > 0),]
+        #allele_mean1 <- colMeans(allele_source1)
+      #} else {allele_source1 <-  matrix(0, ncol=11, nrow=1)}
       
-      if (sum(origins2) > 0) {
-        allele_source2 <- allele_matrix[which(origins2 > 0),]
-        allele_mean2 <- colMeans(allele_source2)
-      } else {allele_source2 <-  matrix(0, ncol=11, nrow=1)}
+      #if (sum(origins2) > 0) {
+        #allele_source2 <- allele_matrix[which(origins2 > 0),]
+        #allele_mean2 <- colMeans(allele_source2)
+      #} else {allele_source2 <-  matrix(0, ncol=11, nrow=1)}
       
-      wgts_source <- c(sum(origins1)/(sum(origins1) + sum(origins2)), sum(origins2)/(sum(origins1) + sum(origins2)))
-      for (ss in 1:length(allele_source1)) {
-        allele_source[ss] <- weighted.mean(c(allele_source1[ss], allele_source2[ss]), wgts_source)
-      }
-      allele_source <- colMeans(allele_source)
+     # wgts_source <- c(sum(origins1)/(sum(origins1) + sum(origins2)), sum(origins2)/(sum(origins1) + sum(origins2)))
+      #for (ss in 1:length(allele_source1)) {
+        #allele_source[ss] <- weighted.mean(c(allele_source1[ss], allele_source2[ss]), wgts_source)
+      #}
+      #allele_source <- colMeans(allele_source)
       
-      if (sum(destinations) > 0) {
+      #if (sum(destinations) > 0) {
         
-        sink_locations <- which(destinations > 0)
-        old_alleles <- allele_matrix[sink_locations,]
-        old_popsize <- rowSums(population_matrix)[sink_locations]
+        #sink_locations <- which(destinations > 0)
+        #old_alleles <- allele_matrix[sink_locations,]
+        #old_popsize <- rowSums(population_matrix)[sink_locations]
       
-        new_popsize <- old_popsize + destinations[sink_locations]
-        wgts_old <- old_popsize/new_popsize
-        wgts_trans <- 1 - wgts_old
+        #new_popsize <- old_popsize + destinations[sink_locations]
+        #wgts_old <- old_popsize/new_popsize
+       # wgts_trans <- 1 - wgts_old
       
-        new_alleles <- trans_alleles <- old_alleles
-        trans_alleles <- matrix(allele_source, nrow=nrow(old_alleles), ncol=ncol(new_alleles), byrow=TRUE) #rnorm(length(trans_alleles), 0.5, 0.05)
-        for (kk in 1:ncol(new_alleles)) {
-          for (jj in 1:nrow(new_alleles)) {
-            new_alleles[jj,kk] <- weighted.mean(c(old_alleles[jj,kk], trans_alleles[jj,kk]), c(wgts_old[jj], wgts_trans[jj]))
-          }
-        }
+       # new_alleles <- trans_alleles <- old_alleles
+       # trans_alleles <- matrix(allele_source, nrow=nrow(old_alleles), ncol=ncol(new_alleles), byrow=TRUE) #rnorm(length(trans_alleles), 0.5, 0.05)
+       # for (kk in 1:ncol(new_alleles)) {
+       #   for (jj in 1:nrow(new_alleles)) {
+       #     new_alleles[jj,kk] <- weighted.mean(c(old_alleles[jj,kk], trans_alleles[jj,kk]), c(wgts_old[jj], wgts_trans[jj]))
+       #   }
+       # }
         
         #H_new <- calc_heterozygosity(frequencies = new_alleles)
-        allele_matrix[sink_locations, ] <- new_alleles
-        #H_matrix[locations] <- H_new
+        #allele_matrix[sink_locations, ] <- new_alleles
         
-        allele_raster[idx] <- allele_matrix
-        #H_raster <- H_matrix
-        H_raster <- calc_heterozygosity(frequencies = allele_raster)
-        landscape$allele_frequencies <- allele_raster
+        
+        #allele_raster[idx] <- allele_matrix
+        
+        #H_raster <- calc_heterozygosity(frequencies = allele_raster)
+        #landscape$allele_frequencies <- allele_raster
         
         landscape$Heterozygosity <- H_raster
         
