@@ -519,6 +519,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     DFT1_raster <- landscape$DFTD1 #DFT1
     DFT2_raster <- landscape$DFTD2 #DFT2
     arrival_raster <- landscape$arrival #Estimated disease arrival date ---->>>>CHECK IF/HOW THIS IS USED
+    barrier_raster <- barriers_map
     
     #Make cells that became locally extinct susceptible again not infected
     total_pop <- sum(population_raster)
@@ -539,6 +540,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     DFT1_matrix <- raster::as.matrix(DFT1_raster)
     DFT2_matrix <- raster::as.matrix(DFT2_raster)
     arrival_matrix <- raster::as.matrix(arrival_raster)
+    barrier_matrix <- raster::as.matrix(barrier_raster)
     
     #Which cells are occupied with DFT1 and DFT2
     DFT1_occ <- which(DFT1_matrix==1)  #------------------------>>>>>>CHANGE NAME - SOURCE AND SOURCE2
@@ -574,8 +576,8 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     #Now run diffusion of DFT1 and DFT2 after 9 years and 30 years respectively. The argument "1" means that cells occupied by all age classes
     #can spread DFT, whereas a value of "2" means that only cells with some devils >1 year old spread DFT
-    if (timestep < 9) {out <- DFT1_raster} else {out <- DFT_diffusion_iterative(DFT1_raster, age_class_matrix, density_raster_scaled, dist_5, 4)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
-    if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion_iterative(DFT2_raster, age_class_matrix, density_raster_scaled, neighborhood = dist_5, 4)}
+    if (timestep < 9) {out <- DFT1_raster} else {out <- DFT_diffusion_iterative(DFT1_raster, age_class_matrix, density_raster_scaled, dist_5, 4, barrier_matrix, 0.33)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
+    if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion_iterative(DFT2_raster, age_class_matrix, density_raster_scaled, dist_5, 4, barrier_matrix, 0.33)}
     
     #Now model spread of DFT1 through migration when individuals move and establish to neighbouring cells
     #In the diffusion model, cells with low densities have a low probability of being infected
@@ -622,12 +624,15 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     DFT1_raster_new <- DFT1_raster + out
     DFT1_raster_new[DFT1_raster_new > 1] <- 1
-    DFT1_raster_new[arrival_raster==100] <- 0
+    if (timestep %in% c(30:37)) {
+      DFT1_raster_new[arrival_raster==100] <- 0
+      DFT1_raster_new[landscape$barrier[[6]] == 1] <- 0
+    }
     landscape$DFTD1 <-  DFT1_raster_new
     
     DFT2_raster_new <- DFT2_raster + out3
     DFT2_raster_new[DFT2_raster_new > 1] <- 1
-    DFT2_raster_new[arrival_raster==100] <- 0
+    #DFT2_raster_new[arrival_raster==100] <- 0
     landscape$DFTD2 <-  DFT2_raster_new
     
     ######################################################################
@@ -691,7 +696,15 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       
       if (timestep %% 2 == 0) {Ft <- 1 - HR_new}
       
+      #Reset allele frequencies on maria island
+      maria.x <- c(589277.3, 590220.2, 584562.7, 584562.7, 585505.6)
+      maria.y <- c(5283562, 5279790, 5278847, 5275076, 5270361)
+      maria.cell <- cellFromXY(H_new, cbind(maria.x, maria.y))
+      allele_raster[maria.cell] <- 0.5
+      
       H_new <- calc_heterozygosity(frequencies = allele_raster)
+      
+     
       
       #Update rasters in landscape object
       landscape$Heterozygosity_relative <- HR_new
