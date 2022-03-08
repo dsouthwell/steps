@@ -398,7 +398,6 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     print(timestep)
     # read population raster stack from landscape
     
-    #landscape = egk_landscape
     
     population_raster <- landscape$population
     
