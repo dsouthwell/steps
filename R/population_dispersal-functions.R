@@ -704,8 +704,8 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       maria.y <- c(5283562, 5279790, 5278847, 5275076, 5270361)
       maria.cell <- cellFromXY(H_new, cbind(maria.x, maria.y))
       allele_raster[maria.cell] <- 0.5
-      HR_new[maria.cell] <- 1
-      Ft[maria.cell] <- 0
+      #HR_new[maria.cell] <- 1
+      #Ft[maria.cell] <- 0
       
       H_new <- calc_heterozygosity(frequencies = allele_raster)
       
