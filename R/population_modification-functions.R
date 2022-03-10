@@ -164,15 +164,19 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       F_source1 <- F_source2 <- F_source <- 0
       
       #Maria Island
+      print("test1")
       if (sum(origins1) > 0) { F_source1 <- mean(inbreeding_matrix[which(origins1 > 0)])} 
       #Forestier
+      print("test2")
       if (sum(origins2) > 0) { F_source2 <- mean(inbreeding_matrix[which(origins2 > 0)])} 
       
+      print("test3")
       if (sum(origins1) > 0 | sum(origins2) > 0){
         wgts_source <- c(sum(origins1)/(sum(origins1) + sum(origins2)), sum(origins2)/(sum(origins1) + sum(origins2)))
         F_source <- weighted.mean(c(F_source1, F_source2), wgts_source)
       }
       
+      print("test4")
       if (sum(destinations) > 0) {
       sink_locations <- which(destinations > 0)
       old_F <- inbreeding_matrix[sink_locations]
@@ -195,7 +199,7 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       
       landscape$inbreeding <- inbreeding_raster
       landscape$Heterozygosity_relative <- diversity_raster
-      
+      print("test5")
       }
       
   
