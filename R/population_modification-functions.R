@@ -156,46 +156,46 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       #########################################
       #Reset inbreeding coefficient for translocated populations
       
-      #inbreeding_raster <- landscape$inbreeding
-      #diversity_raster <- landscape$Heterozygosity_relative
-      #inbreeding_matrix <- raster::extract(inbreeding_raster, idx)
-      #diversity_matrix <- raster::extract(diversity_raster, idx)
+      inbreeding_raster <- landscape$inbreeding
+      diversity_raster <- landscape$Heterozygosity_relative
+      inbreeding_matrix <- raster::extract(inbreeding_raster, idx)
+      diversity_matrix <- raster::extract(diversity_raster, idx)
       
-      #F_source1 <- F_source2 <- F_source <- 0
+      F_source1 <- F_source2 <- F_source <- 0
       
       #Maria Island
-      #if (sum(origins1) > 0) { F_source1 <- mean(inbreeding_matrix[which(origins1 > 0)])} 
+      if (sum(origins1) > 0) { F_source1 <- mean(inbreeding_matrix[which(origins1 > 0)])} 
       #Forestier
-      #if (sum(origins2) > 0) { F_source2 <- mean(inbreeding_matrix[which(origins2 > 0)])} 
+      if (sum(origins2) > 0) { F_source2 <- mean(inbreeding_matrix[which(origins2 > 0)])} 
       
-      #if (sum(origins1) > 0 | sum(origins2) > 0){
-      #  wgts_source <- c(sum(origins1)/(sum(origins1) + sum(origins2)), sum(origins2)/(sum(origins1) + sum(origins2)))
-      #  F_source <- weighted.mean(c(F_source1, F_source2), wgts_source)
-      #}
+      if (sum(origins1) > 0 | sum(origins2) > 0){
+        wgts_source <- c(sum(origins1)/(sum(origins1) + sum(origins2)), sum(origins2)/(sum(origins1) + sum(origins2)))
+        F_source <- weighted.mean(c(F_source1, F_source2), wgts_source)
+      }
       
-      #if (sum(destinations) > 0) {
-      #sink_locations <- which(destinations > 0)
-      #old_F <- inbreeding_matrix[sink_locations]
-      #old_popsize <- rowSums(population_matrix)[sink_locations]
+      if (sum(destinations) > 0) {
+      sink_locations <- which(destinations > 0)
+      old_F <- inbreeding_matrix[sink_locations]
+      old_popsize <- rowSums(population_matrix)[sink_locations]
       
-      #new_popsize <- old_popsize + destinations[sink_locations]
-      #wgts_old <- old_popsize/new_popsize
-      #wgts_trans <- 1 - wgts_old
+      new_popsize <- old_popsize + destinations[sink_locations]
+      wgts_old <- old_popsize/new_popsize
+      wgts_trans <- 1 - wgts_old
       
-      #new_F <- old_F
-      #for (kk in 1:length(old_F)){
-      #  new_F[kk] <- weighted.mean(c(old_F[kk], F_source), c(wgts_old[kk], wgts_trans[kk]))
-      #}
+      new_F <- old_F
+      for (kk in 1:length(old_F)){
+        new_F[kk] <- weighted.mean(c(old_F[kk], F_source), c(wgts_old[kk], wgts_trans[kk]))
+      }
       
-      #inbreeding_matrix[sink_locations] <- new_F
-      #diversity_matrix[sink_locations] <- 1 - new_F
+      inbreeding_matrix[sink_locations] <- new_F
+      diversity_matrix[sink_locations] <- 1 - new_F
       
-      #inbreeding_raster[idx] <- inbreeding_matrix
-      #diversity_raster[idx] <- diversity_matrix
+      inbreeding_raster[idx] <- inbreeding_matrix
+      diversity_raster[idx] <- diversity_matrix
       
-      #landscape$inbreeding <- inbreeding_raster
-      #landscape$Heterozygosity_relative <- diversity_raster
-      #}
+      landscape$inbreeding <- inbreeding_raster
+      landscape$Heterozygosity_relative <- diversity_raster
+      }
       
   
       

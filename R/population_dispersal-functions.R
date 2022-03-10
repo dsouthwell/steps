@@ -578,7 +578,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     #Now run diffusion of DFT1 and DFT2 after 9 years and 30 years respectively. The argument "1" means that cells occupied by all age classes
     #can spread DFT, whereas a value of "2" means that only cells with some devils >1 year old spread DFT
-    if (timestep < 7) {out <- DFT1_raster} else {out <- DFT_diffusion_iterative(DFT1_raster, age_class_matrix, density_raster_scaled, dist_5, DFT1_annual_spread, barrier_matrix, barrier_breach_probability)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
+    if (timestep < 9) {out <- DFT1_raster} else {out <- DFT_diffusion_iterative(DFT1_raster, age_class_matrix, density_raster_scaled, dist_5, DFT1_annual_spread, barrier_matrix, barrier_breach_probability)}   #-------------------------->>>>>>MOVE NEIGHBOURHOOD TO FRONT OF CODE?
     if (timestep < 30) {out3 <- DFT2_raster} else {out3 <- DFT_diffusion_iterative(DFT2_raster, age_class_matrix, density_raster_scaled, dist_5, DFT2_annual_spread, barrier_matrix, barrier_breach_probability)}
     
     #Now model spread of DFT1 through migration when individuals move and establish to neighbouring cells
@@ -704,12 +704,10 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       maria.y <- c(5283562, 5279790, 5278847, 5275076, 5270361)
       maria.cell <- cellFromXY(H_new, cbind(maria.x, maria.y))
       allele_raster[maria.cell] <- 0.5
-      HR[maria.cell] <- 1
+      HR_new[maria.cell] <- 1
       Ft[maria.cell] <- 0
       
       H_new <- calc_heterozygosity(frequencies = allele_raster)
-      
-     
       
       #Update rasters in landscape object
       landscape$Heterozygosity_relative <- HR_new
