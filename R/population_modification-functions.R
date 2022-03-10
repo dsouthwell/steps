@@ -161,7 +161,7 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       inbreeding_matrix <- raster::extract(inbreeding_raster, idx)
       diversity_matrix <- raster::extract(diversity_raster, idx)
       
-      F_source <- 0
+      F_source1 <- F_source2 <- F_source <- 0
       
       #Maria Island
       if (sum(origins1) > 0) { F_source1 <- mean(inbreeding_matrix[which(origins1 > 0)])} 
@@ -185,7 +185,6 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       new_F <- old_F
       for (kk in 1:length(old_F)){
         new_F[kk] <- weighted.mean(c(old_F[kk], F_source), c(wgts_old[kk], wgts_trans[kk]))
-        print(kk)
       }
       
       inbreeding_matrix[sink_locations] <- new_F
