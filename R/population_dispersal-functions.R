@@ -698,12 +698,14 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       
       if (timestep %% 2 == 0) {Ft <- 1 - HR_new}
       
-      #Reset allele frequencies on maria island
+      #Reset allele frequencies and relative heterozygosity on maria island
       
       maria.x <- c(589277.3, 590220.2, 584562.7, 584562.7, 585505.6)
       maria.y <- c(5283562, 5279790, 5278847, 5275076, 5270361)
       maria.cell <- cellFromXY(H_new, cbind(maria.x, maria.y))
       allele_raster[maria.cell] <- 0.5
+      HR[maria.cell] <- 1
+      Ft[maria.cell] <- 0
       
       H_new <- calc_heterozygosity(frequencies = allele_raster)
       
