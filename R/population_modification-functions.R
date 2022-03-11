@@ -164,7 +164,10 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       F_source1 <- F_source2 <- F_source <- 0
       
       #Maria Island
-      if (sum(origins1) > 0) { F_source1 <- mean(inbreeding_matrix[which(origins1 > 0)])} 
+      if (sum(origins1) > 0) {
+        F_source1 <- mean(inbreeding_matrix[which(origins1 > 0)])
+        F_source[] <- 0
+      } 
       #Forestier
       if (sum(origins2) > 0) { F_source2 <- mean(inbreeding_matrix[which(origins2 > 0)])} 
       
