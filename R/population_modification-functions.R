@@ -82,11 +82,10 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       
         if (random_release_sites == TRUE) {
         
-        #Identify which cells dont have DFT1 or DFT2
         DFTD1_raster <- landscape$DFTD1
         DFTD2_raster <- landscape$DFTD2
         DFTF_vac <- which(raster::getValues(DFTD1_raster)==0 & raster::getValues(DFTD2_raster)==0)
-        #Count how many release sites there were
+        
         new_destinations <- sample(DFTF_vac, length(which(destinations > 0)), replace=FALSE)
         #Randomly select the same number of new release sites that aren't diseased
         n_releases <- max(destinations)
