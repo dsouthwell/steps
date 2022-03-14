@@ -80,13 +80,15 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       
       destinations <- raster::extract(landscape[[destinations_layer]][[timestep]], idx)
       
-        if (random_release_sites == TRUE) {
+      if (random_release_sites == TRUE) {
         
-        DFTD1_raster <- landscape$DFTD1
-        DFTD2_raster <- landscape$DFTD2
-        DFTF_vac <- which(raster::getValues(DFTD1_raster)==0 & raster::getValues(DFTD2_raster)==0)
+        DFTD1_matrix <- raster::extract(landscape$DFTD1, idx)
+        DFTD2_matrix <- raster::extract(landscape$DFTD2, idx)
         
-        new_destinations <- sample(DFTF_vac, length(which(destinations > 0)), replace=FALSE)
+        DFTF_vac <- which(DFTD1_matrix==0 & DFTD2_matrix==0)
+       
+        new_destinations <- sample(DFTF_vac, length(which(destinations > 0)), replace=TRUE)
+        
         #Randomly select the same number of new release sites that aren't diseased
         n_releases <- max(destinations)
         destinations[] <- 0
