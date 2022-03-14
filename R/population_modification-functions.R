@@ -80,7 +80,7 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       
       destinations <- raster::extract(landscape[[destinations_layer]][[timestep]], idx)
       
-      if (random_release_sites == TRUE) {
+      if (random_release_sites == TRUE & timestep >= 37) {
         
         DFTD1_matrix <- raster::extract(landscape$DFTD1, idx)
         DFTD2_matrix <- raster::extract(landscape$DFTD2, idx)
