@@ -665,12 +665,13 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     #Loop through each cell - record number of dispersers and allele frequencies (check dimensions match)
     #colnames(dispersal_tracked) <- c(1:ncol(dispersal_tracked))
     #test <- dispersal_tracked[, colSums(dispersal_tracked != 0) > 0]
-    
+    error <- c()
     for (v in 1:ncol(dispersal_tracked)) {
-      if (sum(dispersal_tracked[,v])>0) {
-        cells_to_from <- c(v, which(dispersal_tracked[,v]>0))
+      if (sum(dispersal_tracked[,v]) > 0) { 
+        cells_to_from <- c(v, which(dispersal_tracked[,v] > 0))  
         past_alleles <- matrix(NA, nrow=nlayers(allele_raster), ncol=length(cells_to_from))
         for (w in 1:nlayers(allele_raster)){past_alleles[w,] <- allele_matrix[,,w][cells_to_from]}
+        #if (is.na(past_alleles)) {print(v); error <- c(error, v)}
         past_pop <- c(population_matrix[cells_to_from][1], dispersal_tracked[cells_to_from, v][-1])
         past_pop_weights <- past_pop/sum(past_pop)
         for (x in 1:nlayers(allele_raster)){
@@ -682,17 +683,40 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       }
     }
     
+    H_matrix <- raster::as.matrix(H_new)
+    H_matrix[error] <- 100
+    H_new[] <- H_matrix
+    
+    #for (v in 1:nrow(dispersal_tracked)) {
+      #if (sum(dispersal_tracked[v,]) > 0) { ###################################3
+        #cells_to_from <- c(v, which(dispersal_tracked[v,] > 0))  ###########################
+        #past_alleles <- matrix(NA, nrow=nlayers(allele_raster), ncol=length(cells_to_from))
+        #for (w in 1:nlayers(allele_raster)){past_alleles[w,] <- allele_matrix[,,w][cells_to_from]}
+        #if (is.na(past_alleles)) {print(past_alleles)}
+        #past_pop <- c(population_matrix[cells_to_from][1], dispersal_tracked[v, cells_to_from][-1])
+        #past_pop_weights <- past_pop/sum(past_pop)
+        #for (x in 1:nlayers(allele_raster)){
+          #weighted_allele <- weighted.mean(past_alleles[x,], past_pop_weights, na.rm=TRUE)
+          #allele_slice <- allele_matrix_copy[,,x]
+          #allele_slice[v] <- weighted_allele
+          #allele_matrix_copy[,,x] <- allele_slice
+        #}
+      #}
+    #}
+    
       #allele_raster <- allele_matrix_copy
     for (zz in 1:nlayers(allele_raster)) {raster::values(allele_raster[[zz]]) <- allele_matrix_copy[,,zz]}
       
-      allele_raster[is.na(allele_raster)] <- 0
+      allele_raster[is.na(allele_raster)] <- 0.5
       allele_raster[is.na(DFT1_raster)] <- NA
-      
+    
       #############Calculate inbreeding coefficients
       HR <- landscape$Heterozygosity_relative
       Ft <- landscape$inbreeding
       pop_e_old <- landscape$effective_population
-      pop_deme <- focal(total_pop, w=matrix(1,21,21), fun=sum, na.rm=TRUE, pad=TRUE, padValue=NA)
+      #pop_deme <- focal(total_pop, w=matrix(1,21,21), fun=sum, na.rm=TRUE, pad=TRUE, padValue=NA)
+      total <- total_pop
+      pop_deme <- focal_with_connectivity(total, 15, dist_5)
       pop_deme[is.na(HR)] <- NA
       pop_e <- pop_deme*0.11
       pop_mean <- pop_e + pop_e_old / 2
@@ -702,14 +726,14 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       
       #Reset allele frequencies and relative heterozygosity on maria island
       
-      maria.x <- c(589277.3, 590220.2, 584562.7, 584562.7, 585505.6)
-      maria.y <- c(5283562, 5279790, 5278847, 5275076, 5270361)
+      maria.x <- c(589277.3, 590220.2, 584562.7, 584562.7, 585505.6, 595677.8, 590261.1)
+      maria.y <- c(5283562, 5279790, 5278847, 5275076, 5270361, 5281065, 5276732)
       maria.cell <- cellFromXY(H_new, cbind(maria.x, maria.y))
       allele_raster[maria.cell] <- 0.5
-      #HR_new[maria.cell] <- 1
-      #Ft[maria.cell] <- 0
+      HR_new[maria.cell] <- 1
+      Ft[maria.cell] <- 0
       
-      H_new <- calc_heterozygosity(frequencies = allele_raster)
+      #H_new <- calc_heterozygosity(frequencies = allele_raster)
       
       #Update rasters in landscape object
       landscape$Heterozygosity_relative <- HR_new
