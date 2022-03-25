@@ -683,9 +683,9 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       }
     }
     
-    H_matrix <- raster::as.matrix(H_new)
-    H_matrix[error] <- 100
-    H_new[] <- H_matrix
+    #H_matrix <- raster::as.matrix(H_new)
+    #H_matrix[error] <- 100
+    #H_new[] <- H_matrix
     
     #for (v in 1:nrow(dispersal_tracked)) {
       #if (sum(dispersal_tracked[v,]) > 0) { ###################################3
