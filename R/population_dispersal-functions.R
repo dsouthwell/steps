@@ -734,7 +734,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       HR_new[maria.cell] <- 1
       Ft[maria.cell] <- 0
       
-      #H_new <- calc_heterozygosity(frequencies = allele_raster)
+      H_new <- calc_heterozygosity(frequencies = allele_raster)
       
       #Update rasters in landscape object
       landscape$Heterozygosity_relative <- HR_new
