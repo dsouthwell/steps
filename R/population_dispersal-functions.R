@@ -628,6 +628,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     DFT1_raster_new <- DFT1_raster + out
     DFT1_raster_new[DFT1_raster_new > 1] <- 1
+    #DFT1_disperal_raster[age_class_stack == 0] <- 0
     if (timestep %in% c(30:37)) {
       DFT1_raster_new[arrival_raster==100] <- 0
       DFT1_raster_new[landscape$barrier[[6]] == 1] <- 0
@@ -714,10 +715,10 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       HR <- landscape$Heterozygosity_relative
       Ft <- landscape$inbreeding
       pop_e_old <- landscape$effective_population
-      pop_deme <- focal(total_pop, w=matrix(1,21,21), fun=sum, na.rm=TRUE, pad=TRUE, padValue=NA)
-      #total <- total_pop
-      #pop_deme <- focal_with_connectivity(total, 15, dist_5)
-      #pop_deme[is.na(pop_deme)] <- 0
+      #pop_deme <- focal(total_pop, w=matrix(1,21,21), fun=sum, na.rm=TRUE, pad=TRUE, padValue=NA)
+      total <- total_pop
+      pop_deme <- focal_with_connectivity(total, 15, dist_5)
+      pop_deme[is.na(pop_deme)] <- 0
       pop_deme[is.na(HR)] <- NA
       pop_e <- pop_deme*0.11
       pop_mean <- pop_e + pop_e_old / 2

@@ -148,6 +148,7 @@ growth <- function (transition_matrix,
     addition <- length(transition_matrix) * (seq_len(n_cells) - 1)
     idx_full <- as.numeric(outer(idx, addition, FUN = "+"))
     
+    
     if (is_function) {
       
       # create transition array and fill with initial matrix values
@@ -162,6 +163,8 @@ growth <- function (transition_matrix,
       transition_array <- array(0, c(dim, dim, n_cells))
       values <- vals + total_noise
     }
+    
+   
     
     values <- pmax_zero(values)
     values <- pmin(values, rep(upper, n_cells))
