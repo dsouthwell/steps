@@ -714,10 +714,10 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       HR <- landscape$Heterozygosity_relative
       Ft <- landscape$inbreeding
       pop_e_old <- landscape$effective_population
-      #pop_deme <- focal(total_pop, w=matrix(1,21,21), fun=sum, na.rm=TRUE, pad=TRUE, padValue=NA)
-      total <- total_pop
-      pop_deme <- focal_with_connectivity(total, 15, dist_5)
-      pop_deme[is.na(pop_deme)] <- 0
+      pop_deme <- focal(total_pop, w=matrix(1,21,21), fun=sum, na.rm=TRUE, pad=TRUE, padValue=NA)
+      #total <- total_pop
+      #pop_deme <- focal_with_connectivity(total, 15, dist_5)
+      #pop_deme[is.na(pop_deme)] <- 0
       pop_deme[is.na(HR)] <- NA
       pop_e <- pop_deme*0.11
       pop_mean <- pop_e + pop_e_old / 2
