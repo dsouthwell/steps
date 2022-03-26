@@ -536,6 +536,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     density_raster_scaled <- density_raster/maxValue(max_density) #Density in current time step is scaled against maximum possible time step
     
     #Identify which cells have ages above a certain threshold
+    age_class_stack_all <- sum(landscape$population)
     age_class_stack <- sum(landscape$population[[-c(1,7)]])
     age_class_matrix <- raster::as.matrix(age_class_stack) ########--->> check this maintains the correct dimensions
     age_class_matrix[age_class_matrix > 0] <- 1
@@ -577,6 +578,8 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     #if (DFT2_scen == 1) {nei <- dist_10}
     #if (DFT2_scen == 2) {nei <- dist_5}
    # if (DFT2_scen == 3) {nei <- dist_15}
+    
+    DFT1_annual_spread <- sample(c(3,4), 1, replace=TRUE)
     
     #Now run diffusion of DFT1 and DFT2 after 9 years and 30 years respectively. The argument "1" means that cells occupied by all age classes
     #can spread DFT, whereas a value of "2" means that only cells with some devils >1 year old spread DFT
@@ -628,7 +631,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     DFT1_raster_new <- DFT1_raster + out
     DFT1_raster_new[DFT1_raster_new > 1] <- 1
-    DFT1_raster_new[age_class_stack == 0] <- 0
+    DFT1_raster_new[age_class_stack_all == 0] <- 0
     if (timestep %in% c(30:37)) {
       DFT1_raster_new[arrival_raster==100] <- 0
       DFT1_raster_new[landscape$barrier[[6]] == 1] <- 0
@@ -637,7 +640,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     DFT2_raster_new <- DFT2_raster + out3
     DFT2_raster_new[DFT2_raster_new > 1] <- 1
-    DFT2_raster_new[age_class_stack == 0] <- 0
+    DFT2_raster_new[age_class_stack_all == 0] <- 0
     landscape$DFTD2 <-  DFT2_raster_new
     
     ######################################################################
