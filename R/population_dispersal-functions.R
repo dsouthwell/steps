@@ -579,7 +579,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     #if (DFT2_scen == 2) {nei <- dist_5}
    # if (DFT2_scen == 3) {nei <- dist_15}
     
-    DFT1_annual_spread <- sample(c(3,4), 1, replace=TRUE)
+    #DFT1_annual_spread <- sample(c(3,4), 1, replace=TRUE)
     
     #Now run diffusion of DFT1 and DFT2 after 9 years and 30 years respectively. The argument "1" means that cells occupied by all age classes
     #can spread DFT, whereas a value of "2" means that only cells with some devils >1 year old spread DFT
