@@ -738,6 +738,8 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       HR_new[maria.cell] <- 1
       Ft[maria.cell] <- 0
       
+      #Top up Maria Island population from Cressy
+      
       H_new <- calc_heterozygosity(frequencies = allele_raster)
       
       #Update rasters in landscape object

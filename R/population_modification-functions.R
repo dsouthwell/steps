@@ -217,8 +217,19 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
       landscape$Heterozygosity_relative <- diversity_raster
       }
       
-  
-      
+      #Top up Maria Island population from Cressy
+      if (sum(origins1) > 0) {
+        maria.x <- c(589277.3, 590220.2, 584562.7, 584562.7, 585505.6, 595677.8, 590261.1)
+        maria.y <- c(5283562, 5279790, 5278847, 5275076, 5270361, 5281065, 5276732)
+        maria.cell <- cellFromXY(population_raster, cbind(maria.x, maria.y))
+        maria_population <- sum(rowSums(population_raster[maria.cell]))
+        room <- sum(landscape$carrying_capacity[maria.cell]) - maria_population
+        if (room > 0) {
+          population_raster[maria.cell][1,1] <- round(room/2)
+          population_raster[maria.cell][1,7] <- round(room/2)
+        }
+      }
+      print(sum(rowSums(population_raster[maria.cell])))
       # put back in the raster
       population_raster[idx] <- population_matrix
       
