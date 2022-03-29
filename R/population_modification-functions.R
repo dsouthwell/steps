@@ -229,7 +229,7 @@ translocation <- function (origins_layer1, origins_layer2, origins_layer3, desti
           population_raster[maria.cell][1,7] <- round(room/2)
         }
       }
-      print(sum(rowSums(population_raster[maria.cell])))
+      
       # put back in the raster
       population_raster[idx] <- population_matrix
       
