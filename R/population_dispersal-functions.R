@@ -737,6 +737,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       maria.cell <- cellFromXY(H_new, cbind(maria.x, maria.y))
       allele_raster[maria.cell] <- 0.5
       
+      
       if (maria_diversity == 1) {
         HR_new[maria.cell] <- 1
         Ft[maria.cell] <- 0
