@@ -391,7 +391,8 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
                                          DFT1_annual_spread,
                                          DFT2_annual_spread,
                                          alpha,
-                                         beta) {
+                                         beta,
+                                         maria_diversity) {
   
   # are there suitability and carrying_capacity landscape objects specified?
   carrying_cap <- identical(carrying_capacity, "carrying_capacity")
@@ -735,8 +736,11 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
       maria.y <- c(5283562, 5279790, 5278847, 5275076, 5270361, 5281065, 5276732)
       maria.cell <- cellFromXY(H_new, cbind(maria.x, maria.y))
       allele_raster[maria.cell] <- 0.5
-      HR_new[maria.cell] <- 1
-      Ft[maria.cell] <- 0
+      
+      if (maria_diversity == 1) {
+        HR_new[maria.cell] <- 1
+        Ft[maria.cell] <- 0
+      }
       
       #Top up Maria Island population from Cressy
       
