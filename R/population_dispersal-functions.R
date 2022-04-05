@@ -632,7 +632,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     DFT1_raster_new <- DFT1_raster + out
     DFT1_raster_new[DFT1_raster_new > 1] <- 1
-    DFT1_raster_new[age_class_stack_all == 0] <- 0
+    #DFT1_raster_new[age_class_stack_all == 0] <- 0
     if (timestep %in% c(30:37)) {
       DFT1_raster_new[arrival_raster==100] <- 0
       DFT1_raster_new[landscape$barrier[[6]] == 1] <- 0
@@ -641,7 +641,7 @@ cellular_automata_dispersal <- function (mean_cells = Inf,
     
     DFT2_raster_new <- DFT2_raster + out3
     DFT2_raster_new[DFT2_raster_new > 1] <- 1
-    DFT2_raster_new[age_class_stack_all == 0] <- 0
+    #DFT2_raster_new[age_class_stack_all == 0] <- 0
     landscape$DFTD2 <-  DFT2_raster_new
     
     ######################################################################
